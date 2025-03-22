@@ -1,0 +1,26 @@
+{
+  "name": "code-snippet",
+  "version": "1.0.0",
+  "description": "Code Snippet Monorepo",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "clean": "pnpm -r clean",
+    "lint": "pnpm -r lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.6.5",
+  "dependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.22.0",
+    "tsup": "^8.0.2",
+    "rimraf": "^5.0.5"
+  }
+}

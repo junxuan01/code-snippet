@@ -1,0 +1,44 @@
+{
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "css.validate": false,
+  "editor.inlineSuggest.enabled": true,
+  "editor.snippetSuggestions": "inline",
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+  "tailwindCSS.prefix": "tw-",
+  "tailwindCSS.experimental.classRegex": [
+    ["className=\"([^\"]*)", "'([^']*)'"],
+    ["className={\"([^}]*)\"}", "'([^']*)'"],
+    ["className={`([^`]*)`}", "'([^']*)'"],
+    ["className:\\s*\"([^\"]*)\"", "'([^']*)'"],
+    ["clsx\\(([^)]*)\\)", "'([^']*)'"],
+    ["cn\\(([^)]*)\\)", "'([^']*)'"]
+  ],
+  "tailwindCSS.classAttributes": ["className", "class", "classList", "ngClass"],
+  "tailwindCSS.emmetCompletions": true,
+  "tailwindCSS.suggestions": true,
+  "tailwindCSS.hovers": true,
+  "tailwindCSS.validate": true,
+  "tailwindCSS.lint.cssConflict": "warning",
+  "tailwindCSS.showPixelEquivalents": true,
+  "tailwindCSS.colorDecorators": true,
+  "tailwindCSS.codeActions": true,
+
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "always",
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.format.enable": true,
+  "eslint.lintTask.enable": true,
+  "eslint.run": "onType",
+  "eslint.enable": true,
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "eslint.useFlatConfig": true,
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.debug": true
+}

@@ -1,4 +1,4 @@
-import { Request, CustomAxiosRequestConfig } from "./request";
+import { CustomAxiosRequestConfig, Request } from './request';
 
 /**
  * 创建请求实例
@@ -13,10 +13,10 @@ export function createRequest(config: CustomAxiosRequestConfig = {}): Request {
  * 默认请求实例
  */
 export const request = createRequest({
-  baseURL: "/",
+  baseURL: '/',
   timeout: 15000,
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 

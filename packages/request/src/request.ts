@@ -1,11 +1,11 @@
 import type {
+  AxiosError,
   AxiosInstance,
   AxiosRequestConfig,
   AxiosResponse,
   InternalAxiosRequestConfig,
-  AxiosError,
-} from "axios";
-import axios, { CancelTokenSource } from "axios";
+} from 'axios';
+import axios, { CancelTokenSource } from 'axios';
 
 /**
  * 自定义请求配置接口，扩展 AxiosRequestConfig
@@ -70,8 +70,7 @@ export class Request {
     this.instance.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
         // 转换为自定义配置类型
-        const customConfig = config as InternalAxiosRequestConfig &
-          CustomAxiosRequestConfig;
+        const customConfig = config as InternalAxiosRequestConfig & CustomAxiosRequestConfig;
 
         // 处理取消请求逻辑
         if (customConfig.requestId) {
@@ -84,12 +83,12 @@ export class Request {
         // }
 
         // 请求开始时间
-        customConfig.headers["Request-Start-Time"] = Date.now().toString();
+        customConfig.headers['Request-Start-Time'] = Date.now().toString();
 
         return customConfig;
       },
       (error: AxiosError) => {
-        console.error("请求拦截器错误:", error);
+        console.error('请求拦截器错误:', error);
         return Promise.reject(error);
       }
     );
@@ -104,9 +103,7 @@ export class Request {
         }
 
         // 计算请求耗时
-        const requestStartTime = Number(
-          response.config.headers["Request-Start-Time"] || 0
-        );
+        const requestStartTime = Number(response.config.headers['Request-Start-Time'] || 0);
         const requestEndTime = Date.now();
         const requestDuration = requestEndTime - requestStartTime;
 
@@ -122,8 +119,8 @@ export class Request {
       (error: AxiosError) => {
         // 处理被取消的请求
         if (axios.isCancel(error)) {
-          console.log("请求被取消:", error.message);
-          return Promise.reject(new Error("请求被取消"));
+          console.log('请求被取消:', error.message);
+          return Promise.reject(new Error('请求被取消'));
         }
 
         // 移除已完成的请求（即使是出错的）
@@ -175,10 +172,7 @@ export class Request {
    * @param requestId 请求ID
    * @param message 取消消息
    */
-  public cancelRequest(
-    requestId: string,
-    message: string = "请求被手动取消"
-  ): void {
+  public cancelRequest(requestId: string, message: string = '请求被手动取消'): void {
     if (this.pendingRequests.has(requestId)) {
       const source = this.pendingRequests.get(requestId);
       source?.cancel(message);
@@ -192,7 +186,7 @@ export class Request {
    * @returns 标准化的错误响应
    */
   private handleRequestError(error: AxiosError): HttpResponse {
-    let errorMessage = "未知错误";
+    let errorMessage = '未知错误';
     let statusCode = 500;
 
     if (error.response) {
@@ -201,46 +195,45 @@ export class Request {
 
       switch (statusCode) {
         case 400:
-          errorMessage = "请求参数错误";
+          errorMessage = '请求参数错误';
           break;
         case 401:
-          errorMessage = "未授权，请重新登录";
+          errorMessage = '未授权，请重新登录';
           // 可以在这里处理未授权的情况，例如清除本地令牌并跳转到登录页面
           break;
         case 403:
-          errorMessage = "拒绝访问";
+          errorMessage = '拒绝访问';
           break;
         case 404:
-          errorMessage = "请求的资源不存在";
+          errorMessage = '请求的资源不存在';
           break;
         case 500:
-          errorMessage = "服务器内部错误";
+          errorMessage = '服务器内部错误';
           break;
         default:
           errorMessage = `请求出错 (${statusCode})`;
       }
 
       // 如果响应中有详细错误信息，优先使用
-      if (error.response.data && typeof error.response.data === "object") {
-        errorMessage =
-          (error.response.data as { message?: string }).message || errorMessage;
+      if (error.response.data && typeof error.response.data === 'object') {
+        errorMessage = (error.response.data as { message?: string }).message || errorMessage;
       }
     } else if (error.request) {
       // 请求已发送但没有收到响应
-      errorMessage = "服务器无响应";
+      errorMessage = '服务器无响应';
     } else {
       // 设置请求时发生了错误
-      errorMessage = error.message || "请求失败";
+      errorMessage = error.message || '请求失败';
     }
 
     // 网络错误特殊处理
-    if (error.message?.includes("Network Error")) {
-      errorMessage = "网络错误，请检查您的网络连接";
+    if (error.message?.includes('Network Error')) {
+      errorMessage = '网络错误，请检查您的网络连接';
     }
 
     // 超时错误特殊处理
-    if (error.message?.includes("timeout")) {
-      errorMessage = "请求超时，请稍后重试";
+    if (error.message?.includes('timeout')) {
+      errorMessage = '请求超时，请稍后重试';
     }
 
     return {

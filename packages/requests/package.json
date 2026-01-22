@@ -1,0 +1,37 @@
+{
+  "name": "@code-snippet/requests",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "封装了 axios 的 HTTP 请求库",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "bun x tsc --noEmit"
+  },
+  "dependencies": {
+    "axios": "^1.9.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "keywords": [
+    "axios",
+    "http",
+    "request",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT"
+}

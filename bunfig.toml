@@ -1,0 +1,31 @@
+# Bun 配置文件
+# https://bun.sh/docs/runtime/bunfig
+
+[install]
+# 使用国内镜像加速（淘宝镜像）
+registry = "https://registry.npmmirror.com/"
+
+# 自动安装 peer dependencies
+auto = "auto"
+
+# 冻结 lockfile（CI 环境推荐）
+# frozen = true
+
+[install.cache]
+# 缓存目录
+# dir = "~/.bun/install/cache"
+
+[test]
+# 测试超时时间（毫秒）
+timeout = 5000
+
+# 测试覆盖率
+# coverage = true
+
+# 预加载文件
+# preload = ["./test/setup.ts"]
+
+# Watch 模式配置
+[watch]
+# 忽略的文件
+ignore = ["**/node_modules/**", "**/.git/**", "**/dist/**", "**/*.log"]

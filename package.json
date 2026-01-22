@@ -1,14 +1,30 @@
 {
   "name": "code-snippet",
-  "module": "index.ts",
+  "version": "0.1.0",
+  "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter='./packages/*' dev",
+    "build": "bun run build:requests && bun run build:utils",
+    "build:requests": "bun run --cwd packages/requests build",
+    "build:utils": "bun run --cwd packages/utils build",
+    "test": "bun test",
+    "clean": "rm -rf packages/*/dist",
+    "typecheck": "bun run --filter='./packages/*' typecheck",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint --write .",
+    "lint:check": "biome lint .",
+    "check": "biome check --write .",
+    "ci": "biome ci ."
+  },
   "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "axios": "^1.9.0"
+    "@biomejs/biome": "^2.3.11",
+    "@types/bun": "latest",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.3"
   }
 }

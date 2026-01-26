@@ -1,5 +1,5 @@
 {
-  "name": "@code-snippet/requests",
+  "name": "@junxuan/requests",
   "version": "0.2.0",
   "type": "module",
   "description": "基于 Axios 封装的 TypeScript HTTP 请求库，支持自定义响应格式",

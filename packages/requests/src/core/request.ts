@@ -4,26 +4,35 @@
  * @description
  * 基于 Axios 封装的 HTTP 请求类，提供以下功能：
  * - 🔐 **自定义认证**: 支持通过 requestInterceptor 添加 Token 和请求头
- * - 📦 **智能解包**: 自动解包 `{ code, data, message }` 格式的响应
+ * - 📦 **智能解包**: 自动解包响应数据，支持自定义响应格式
  * - 🚨 **统一错误处理**: 支持自定义错误处理器链
  * - 🎯 **类型安全**: 完整的 TypeScript 类型推导支持
  * - 🔧 **高度可定制**: 支持实例级和请求级配置覆盖
  * - 🚀 **便捷方法**: 提供 get、post、put、patch、delete 便捷方法
- *
- * @template DefaultReturnData - 实例级别的 returnData 默认值
+ * - 🌍 **i18n 支持**: 错误消息可自定义，支持国际化
  *
  * @example
  * ```typescript
- * // 创建实例
+ * // 创建实例（使用默认响应格式 { code, data, message }）
  * const api = new Request({
  *   baseURL: 'https://api.example.com',
- *   returnData: true,
  *   timeout: 10000,
+ * });
+ *
+ * // 自定义响应格式
+ * const api = new Request({
+ *   baseURL: 'https://api.example.com',
+ *   responseParser: {
+ *     isSuccess: (res) => res.status === 'ok',
+ *     getData: (res) => res.result,
+ *     getMessage: (res) => res.error || 'success',
+ *     getCode: (res) => res.status === 'ok' ? 0 : -1,
+ *   },
  * });
  *
  * // 使用便捷方法
  * const user = await api.get<User>('/user/1');
- * const users = await api.get<User[]>('/users', { page: 1, page_size: 10 });
+ * const users = await api.get<User[]>('/users', { page: 1, pageSize: 10 });
  * const created = await api.post<User>('/users', { name: 'John' });
  * ```
  */
@@ -34,7 +43,6 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 import {
-  BusinessError,
   createBusinessErrorFromAxios,
   createBusinessErrorFromResponse,
   ErrorHandlerManager,
@@ -42,18 +50,21 @@ import {
 import type {
   CustomRequestConfig,
   ErrorHandler,
-  HttpResponse,
-  InferResponse,
+  HttpErrorMessages,
   RequestInstanceConfig,
   RequestInterceptor,
 } from '../types';
+import { defaultResponseParser, type ResponseParser } from '../types/response';
 
-export class Request<DefaultReturnData extends boolean = true> {
+/**
+ * HTTP 请求类
+ */
+export class Request {
   /** axios 实例 */
-  private readonly instance: AxiosInstance;
+  private readonly _axios: AxiosInstance;
 
-  /** 实例级别的 returnData 默认值 */
-  private readonly defaultReturnData: DefaultReturnData;
+  /** 是否默认返回解包数据 */
+  private readonly defaultReturnData: boolean;
 
   /** 错误处理器管理器 */
   private readonly errorManager: ErrorHandlerManager;
@@ -64,27 +75,43 @@ export class Request<DefaultReturnData extends boolean = true> {
   /** 自定义请求拦截器 */
   private readonly requestInterceptor?: RequestInterceptor;
 
+  /** 响应解析器 */
+  private readonly responseParser: ResponseParser<any>;
+
+  /** 自定义错误消息 */
+  private readonly errorMessages?: HttpErrorMessages;
+
+  /**
+   * 获取底层 axios 实例
+   * @description 用于高级配置场景，如添加额外拦截器
+   */
+  public get axios(): AxiosInstance {
+    return this._axios;
+  }
+
   /**
    * 构造函数
    */
-  constructor(
-    config: RequestInstanceConfig & { returnData?: DefaultReturnData }
-  ) {
+  constructor(config: RequestInstanceConfig = {}) {
     const {
-      returnData = true as DefaultReturnData,
+      returnData = true,
       onUnauthorized,
       defaultErrorHandler,
       requestInterceptor,
+      responseParser = defaultResponseParser,
+      errorMessages,
       ...axiosConfig
     } = config;
 
     this.defaultReturnData = returnData;
     this.onUnauthorized = onUnauthorized;
     this.requestInterceptor = requestInterceptor;
+    this.responseParser = responseParser;
+    this.errorMessages = errorMessages;
     this.errorManager = new ErrorHandlerManager(defaultErrorHandler);
 
     // 创建 axios 实例
-    this.instance = axios.create({
+    this._axios = axios.create({
       timeout: 10000,
       ...axiosConfig,
     });
@@ -105,7 +132,7 @@ export class Request<DefaultReturnData extends boolean = true> {
    */
   private setupInterceptors(): void {
     // 请求拦截器
-    this.instance.interceptors.request.use(
+    this._axios.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         if (this.requestInterceptor) {
           const modifiedConfig = await this.requestInterceptor(config);
@@ -120,40 +147,51 @@ export class Request<DefaultReturnData extends boolean = true> {
     );
 
     // 响应拦截器
-    this.instance.interceptors.response.use(
-      (response: AxiosResponse<HttpResponse>): any => {
+    this._axios.interceptors.response.use(
+      (response: AxiosResponse): AxiosResponse | Promise<never> => {
         const config = response.config as CustomRequestConfig;
         const responseData = response.data;
 
-        // 跳过业务检查（用于特殊接口）
+        // 跳过业务检查（用于特殊接口或第三方 API）
         if (config.skipBusinessCheck) {
           return this.resolveReturnData(response, config);
         }
 
-        // 检查业务状态码
-        if (responseData?.code !== undefined && responseData.code !== 0) {
-          const error = createBusinessErrorFromResponse(
-            responseData.code,
-            responseData.message,
-            responseData.data,
-            response.status
-          );
+        // 使用响应解析器检查业务状态
+        if (responseData !== null && responseData !== undefined) {
+          const isSuccess = this.responseParser.isSuccess(responseData);
 
-          // 执行错误处理
-          this.errorManager.handle(error, config.hideErrorTip);
+          if (!isSuccess) {
+            const code = this.responseParser.getCode(responseData);
+            const message = this.responseParser.getMessage(responseData);
+            const data = this.responseParser.getData(responseData);
 
-          return Promise.reject(error);
+            const error = createBusinessErrorFromResponse(
+              code,
+              message,
+              data,
+              response.status
+            );
+
+            // 执行错误处理
+            this.errorManager.handle(error, config.hideErrorTip);
+
+            return Promise.reject(error);
+          }
         }
 
         return this.resolveReturnData(response, config);
       },
       async (error: AxiosError) => {
         const config = error.config as CustomRequestConfig | undefined;
-        const businessError = createBusinessErrorFromAxios(error);
+        const businessError = createBusinessErrorFromAxios(
+          error,
+          this.errorMessages
+        );
 
         // 处理 401 未授权
-        if (businessError.httpStatus === 401) {
-          this.handleUnauthorized();
+        if (businessError.httpStatus === 401 && this.onUnauthorized) {
+          this.onUnauthorized();
         }
 
         // 执行错误处理
@@ -168,138 +206,132 @@ export class Request<DefaultReturnData extends boolean = true> {
    * 根据配置决定返回数据格式
    */
   private resolveReturnData(
-    response: AxiosResponse<HttpResponse>,
+    response: AxiosResponse,
     config: CustomRequestConfig
-  ): unknown {
+  ): any {
     const shouldReturnData = config.returnData ?? this.defaultReturnData;
 
     if (shouldReturnData) {
       const responseData = response.data;
-      if (
-        responseData &&
-        typeof responseData === 'object' &&
-        'data' in responseData
-      ) {
-        return responseData.data;
+      // 尝试使用解析器提取数据
+      if (responseData !== null && responseData !== undefined) {
+        try {
+          return this.responseParser.getData(responseData);
+        } catch {
+          // 如果解析失败，返回原始数据
+          return responseData;
+        }
       }
-      return response.data;
+      return responseData;
     }
 
     return response.data;
   }
 
   /**
-   * 处理 401 未授权
-   */
-  private handleUnauthorized(): void {
-    if (this.onUnauthorized) {
-      this.onUnauthorized();
-    } else if (typeof globalThis !== 'undefined' && 'location' in globalThis) {
-      (globalThis as any).location.href = '/login';
-    }
-  }
-
-  /**
    * 发送请求
+   *
+   * @template T - 期望返回的数据类型
+   * @template Raw - 是否返回原始响应（returnData: false）
    */
-  public request<T, R extends boolean = DefaultReturnData>(
-    config: CustomRequestConfig & { returnData?: R }
-  ): Promise<InferResponse<T, R>> {
-    return this.instance.request(config) as Promise<InferResponse<T, R>>;
+  public request<T, Raw extends boolean = false>(
+    config: CustomRequestConfig & { returnData?: Raw }
+  ): Promise<Raw extends true ? unknown : T> {
+    return this._axios.request(config) as Promise<
+      Raw extends true ? unknown : T
+    >;
   }
 
   /**
    * GET 请求
    */
-  public get<T, R extends boolean = DefaultReturnData>(
+  public get<T, Raw extends boolean = false>(
     url: string,
     params?: object,
     config?: Omit<CustomRequestConfig, 'url' | 'method' | 'params'> & {
-      returnData?: R;
+      returnData?: Raw;
     }
-  ): Promise<InferResponse<T, R>> {
-    return this.request<T, R>({
+  ): Promise<Raw extends true ? unknown : T> {
+    return this.request<T, Raw>({
       method: 'GET',
       url,
       params,
       ...config,
-    } as CustomRequestConfig & { returnData?: R });
+    } as CustomRequestConfig & { returnData?: Raw });
   }
 
   /**
    * POST 请求
    */
-  public post<T, R extends boolean = DefaultReturnData>(
+  public post<T, Raw extends boolean = false>(
     url: string,
     data?: unknown,
     config?: Omit<CustomRequestConfig, 'url' | 'method' | 'data'> & {
-      returnData?: R;
+      returnData?: Raw;
     }
-  ): Promise<InferResponse<T, R>> {
-    return this.request<T, R>({
+  ): Promise<Raw extends true ? unknown : T> {
+    return this.request<T, Raw>({
       method: 'POST',
       url,
       data,
       ...config,
-    } as CustomRequestConfig & { returnData?: R });
+    } as CustomRequestConfig & { returnData?: Raw });
   }
 
   /**
    * PUT 请求
    */
-  public put<T, R extends boolean = DefaultReturnData>(
+  public put<T, Raw extends boolean = false>(
     url: string,
     data?: unknown,
     config?: Omit<CustomRequestConfig, 'url' | 'method' | 'data'> & {
-      returnData?: R;
+      returnData?: Raw;
     }
-  ): Promise<InferResponse<T, R>> {
-    return this.request<T, R>({
+  ): Promise<Raw extends true ? unknown : T> {
+    return this.request<T, Raw>({
       method: 'PUT',
       url,
       data,
       ...config,
-    } as CustomRequestConfig & { returnData?: R });
+    } as CustomRequestConfig & { returnData?: Raw });
   }
 
   /**
    * PATCH 请求
    */
-  public patch<T, R extends boolean = DefaultReturnData>(
+  public patch<T, Raw extends boolean = false>(
     url: string,
     data?: unknown,
     config?: Omit<CustomRequestConfig, 'url' | 'method' | 'data'> & {
-      returnData?: R;
+      returnData?: Raw;
     }
-  ): Promise<InferResponse<T, R>> {
-    return this.request<T, R>({
+  ): Promise<Raw extends true ? unknown : T> {
+    return this.request<T, Raw>({
       method: 'PATCH',
       url,
       data,
       ...config,
-    } as CustomRequestConfig & { returnData?: R });
+    } as CustomRequestConfig & { returnData?: Raw });
   }
 
   /**
    * DELETE 请求
    */
-  public delete<T, R extends boolean = DefaultReturnData>(
+  public delete<T, Raw extends boolean = false>(
     url: string,
-    config?: Omit<CustomRequestConfig, 'url' | 'method'> & { returnData?: R }
-  ): Promise<InferResponse<T, R>> {
-    return this.request<T, R>({
+    config?: Omit<CustomRequestConfig, 'url' | 'method'> & { returnData?: Raw }
+  ): Promise<Raw extends true ? unknown : T> {
+    return this.request<T, Raw>({
       method: 'DELETE',
       url,
       ...config,
-    } as CustomRequestConfig & { returnData?: R });
+    } as CustomRequestConfig & { returnData?: Raw });
   }
 
   /**
    * 静态工厂方法
    */
-  public static create<R extends boolean = true>(
-    config: RequestInstanceConfig & { returnData?: R }
-  ): Request<R> {
-    return new Request<R>(config as RequestInstanceConfig & { returnData: R });
+  public static create(config: RequestInstanceConfig = {}): Request {
+    return new Request(config);
   }
 }

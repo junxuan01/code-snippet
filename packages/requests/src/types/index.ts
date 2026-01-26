@@ -5,6 +5,7 @@
 // 请求配置相关类型
 export type {
   CustomRequestConfig,
+  HttpErrorMessages,
   RequestInstanceConfig,
   RequestInterceptor,
 } from './config';
@@ -16,9 +17,16 @@ export type {
 } from './error';
 // 响应相关类型
 export type {
+  DefaultHttpResponse,
+  DefaultPaginatedData,
+  DefaultPagination,
+  DefaultPaginationParams,
   HttpResponse,
-  InferResponse,
   PaginatedData,
   Pagination,
   PaginationParams,
+  ResponseParser,
 } from './response';
+
+// 导出默认解析器
+export { defaultResponseParser } from './response';

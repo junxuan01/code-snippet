@@ -3,6 +3,23 @@
  */
 import type { AxiosRequestConfig } from 'axios';
 import type { DefaultErrorHandlerConfig } from './error';
+import type { ResponseParser } from './response';
+
+/**
+ * HTTP 错误消息映射
+ *
+ * @description 用于自定义 HTTP 状态码对应的错误消息，支持 i18n
+ */
+export type HttpErrorMessages = Partial<Record<number, string>> & {
+  /** 网络错误消息 */
+  networkError?: string;
+  /** 超时错误消息 */
+  timeoutError?: string;
+  /** 默认错误消息 */
+  defaultError?: string;
+  /** 无响应错误消息 */
+  noResponse?: string;
+};
 
 /**
  * 自定义请求配置
@@ -11,12 +28,12 @@ import type { DefaultErrorHandlerConfig } from './error';
  */
 export interface CustomRequestConfig extends AxiosRequestConfig {
   /**
-   * 是否只返回 data 字段
+   * 是否只返回解包后的 data 字段
    * @default true (实例默认值)
    *
    * @description
-   * - `true`: 返回 `response.data.data`，类型为 T
-   * - `false`: 返回完整 `HttpResponse<T>`
+   * - `true`: 返回解包后的数据，类型为 T
+   * - `false`: 返回完整原始响应
    */
   returnData?: boolean;
 
@@ -35,8 +52,8 @@ export interface CustomRequestConfig extends AxiosRequestConfig {
    * @default false
    *
    * @description
-   * - `true`: 不检查 code !== 0，直接返回数据（用于特殊接口）
-   * - `false`: 检查 code，非 0 时抛出 BusinessError
+   * - `true`: 不检查业务状态码，直接返回数据（用于特殊接口或第三方 API）
+   * - `false`: 使用 responseParser 检查业务状态
    */
   skipBusinessCheck?: boolean;
 }
@@ -57,14 +74,14 @@ export type RequestInterceptor = (
  */
 export interface RequestInstanceConfig extends CustomRequestConfig {
   /**
-   * 是否只返回 data 字段（实例级别默认值）
+   * 是否只返回解包后的 data 字段（实例级别默认值）
    * @default true
    */
   returnData?: boolean;
 
   /**
    * 401 未授权时的处理函数
-   * @description 不提供时默认跳转到 /login
+   * @description 不提供时不做任何处理，由用户自行决定行为
    */
   onUnauthorized?: () => void;
 
@@ -76,4 +93,17 @@ export interface RequestInstanceConfig extends CustomRequestConfig {
    * @description 用于添加 headers、token 等
    */
   requestInterceptor?: RequestInterceptor;
+
+  /**
+   * 响应解析器
+   * @description 定义如何解析后端响应，支持自定义响应格式
+   * @default defaultResponseParser (适用于 { code: 0, data, message } 格式)
+   */
+  responseParser?: ResponseParser<any>;
+
+  /**
+   * 自定义 HTTP 错误消息
+   * @description 用于覆盖默认的错误消息，支持 i18n
+   */
+  errorMessages?: HttpErrorMessages;
 }

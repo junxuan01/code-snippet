@@ -25,8 +25,8 @@
  * ```
  */
 export class BusinessError extends Error {
-  /** 业务状态码 */
-  readonly code: number;
+  /** 业务状态码，支持数字或字符串 */
+  readonly code: number | string;
   /** 原始响应数据 */
   readonly data?: unknown;
   /** HTTP 状态码 */
@@ -37,7 +37,7 @@ export class BusinessError extends Error {
   readonly isTimeoutError: boolean;
 
   constructor(options: {
-    code: number;
+    code: number | string;
     message: string;
     data?: unknown;
     httpStatus?: number;

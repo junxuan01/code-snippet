@@ -1,8 +1,8 @@
 {
   "name": "@code-snippet/requests",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
-  "description": "封装了 axios 的 HTTP 请求库",
+  "description": "基于 Axios 封装的 TypeScript HTTP 请求库，支持自定义响应格式",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -20,18 +20,30 @@
     "dev": "tsup --watch",
     "typecheck": "bun x tsc --noEmit"
   },
-  "dependencies": {
-    "axios": "^1.9.0"
+  "peerDependencies": {
+    "axios": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "axios": {
+      "optional": false
+    }
   },
   "devDependencies": {
+    "axios": "^1.9.0",
     "typescript": "^5.7.3"
   },
   "keywords": [
     "axios",
     "http",
     "request",
-    "typescript"
+    "typescript",
+    "api-client"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/user/code-snippet.git",
+    "directory": "packages/requests"
+  }
 }

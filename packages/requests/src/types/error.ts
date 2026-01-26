@@ -44,7 +44,8 @@ export interface DefaultErrorHandlerConfig {
  * 业务错误构造选项
  */
 export interface BusinessErrorOptions {
-  code: number;
+  /** 业务状态码，支持数字或字符串 */
+  code: number | string;
   message: string;
   data?: unknown;
   httpStatus?: number;

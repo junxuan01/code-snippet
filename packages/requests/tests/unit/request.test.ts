@@ -2,7 +2,7 @@
  * Request 类单元测试
  */
 import { describe, expect, it } from 'bun:test';
-import { BusinessError, Request } from '../../src';
+import { BusinessError, defaultResponseParser, Request } from '../../src';
 
 describe('Request', () => {
   describe('constructor', () => {
@@ -26,9 +26,40 @@ describe('Request', () => {
           showMessage: true,
           messageHandler: () => {},
         },
+        responseParser: defaultResponseParser,
+        errorMessages: {
+          401: '请重新登录',
+          networkError: '网络连接失败',
+        },
       });
 
       expect(api).toBeDefined();
+    });
+
+    it('should create instance with custom response parser', () => {
+      // 自定义响应格式: { status: 'ok', result: T, error: string }
+      const api = new Request({
+        baseURL: 'https://api.example.com',
+        responseParser: {
+          isSuccess: (res: { status: string }) => res.status === 'ok',
+          getData: (res: { result: unknown }) => res.result,
+          getMessage: (res: { error?: string }) => res.error || 'success',
+          getCode: (res: { status: string }) => (res.status === 'ok' ? 0 : -1),
+        },
+      });
+
+      expect(api).toBeDefined();
+    });
+  });
+
+  describe('axios instance', () => {
+    it('should expose axios instance', () => {
+      const api = new Request({
+        baseURL: 'https://api.example.com',
+      });
+
+      expect(api.axios).toBeDefined();
+      expect(api.axios.defaults.baseURL).toBe('https://api.example.com');
     });
   });
 
@@ -37,6 +68,12 @@ describe('Request', () => {
       const api = Request.create({
         baseURL: 'https://api.example.com',
       });
+
+      expect(api).toBeInstanceOf(Request);
+    });
+
+    it('should create instance without config', () => {
+      const api = Request.create();
 
       expect(api).toBeInstanceOf(Request);
     });
@@ -62,9 +99,6 @@ describe('Request', () => {
   });
 
   describe('HTTP methods', () => {
-    // 注意：这些测试需要 mock axios，实际集成测试会更复杂
-    // 这里只测试方法是否存在和类型正确
-
     it('should have get method', () => {
       const api = new Request({ baseURL: 'https://api.example.com' });
       expect(typeof api.get).toBe('function');
@@ -104,16 +138,16 @@ describe('Request Integration', () => {
   it('should make real GET request', async () => {
     const api = new Request({
       baseURL: 'https://jsonplaceholder.typicode.com',
-      skipBusinessCheck: true, // jsonplaceholder 不返回 { code, data, message } 格式
+      // jsonplaceholder 不返回 { code, data, message } 格式，需要自定义解析器
+      responseParser: {
+        isSuccess: () => true, // 总是成功
+        getData: res => res, // 直接返回原始数据
+        getMessage: () => 'success',
+        getCode: () => 0,
+      },
     });
 
-    const todo = await api.get<{ id: number; title: string }>(
-      '/todos/1',
-      {},
-      {
-        skipBusinessCheck: true,
-      }
-    );
+    const todo = await api.get<{ id: number; title: string }>('/todos/1');
 
     expect(todo).toBeDefined();
     expect(todo.id).toBe(1);
@@ -122,14 +156,19 @@ describe('Request Integration', () => {
   it('should make real POST request', async () => {
     const api = new Request({
       baseURL: 'https://jsonplaceholder.typicode.com',
-      skipBusinessCheck: true,
+      responseParser: {
+        isSuccess: () => true,
+        getData: res => res,
+        getMessage: () => 'success',
+        getCode: () => 0,
+      },
     });
 
-    const newPost = await api.post<{ id: number; title: string }>(
-      '/posts',
-      { title: 'Test Post', body: 'Test Body', userId: 1 },
-      { skipBusinessCheck: true }
-    );
+    const newPost = await api.post<{ id: number; title: string }>('/posts', {
+      title: 'Test Post',
+      body: 'Test Body',
+      userId: 1,
+    });
 
     expect(newPost).toBeDefined();
     expect(newPost.id).toBeDefined();
@@ -138,7 +177,12 @@ describe('Request Integration', () => {
   it('should handle 404 error', async () => {
     const api = new Request({
       baseURL: 'https://jsonplaceholder.typicode.com',
-      skipBusinessCheck: true,
+      responseParser: {
+        isSuccess: () => true,
+        getData: res => res,
+        getMessage: () => 'success',
+        getCode: () => 0,
+      },
       defaultErrorHandler: {
         showMessage: false, // 禁用错误提示
       },
@@ -150,6 +194,32 @@ describe('Request Integration', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BusinessError);
       expect((error as BusinessError).httpStatus).toBe(404);
+    }
+  });
+
+  it('should use custom error messages', async () => {
+    const api = new Request({
+      baseURL: 'https://jsonplaceholder.typicode.com',
+      responseParser: {
+        isSuccess: () => true,
+        getData: res => res,
+        getMessage: () => 'success',
+        getCode: () => 0,
+      },
+      errorMessages: {
+        404: '资源未找到',
+      },
+      defaultErrorHandler: {
+        showMessage: false,
+      },
+    });
+
+    try {
+      await api.get('/nonexistent-endpoint-12345');
+      expect.unreachable('Should throw an error');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BusinessError);
+      expect((error as BusinessError).message).toBe('资源未找到');
     }
   });
 });

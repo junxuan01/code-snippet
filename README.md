@@ -1,22 +1,28 @@
 # Code Snippet Monorepo 🚀
 
-基于 **Bun** 的 All-in-One Monorepo 项目，包含常用的代码片段和工具库。
+基于 **Bun** 的 Monorepo 项目，包含常用的代码片段和工具库。
 
 ## 📦 Packages
 
-| Package | 版本 | 描述 |
-|---------|------|------|
-| [@code-snippet/requests](./packages/requests) | 0.1.0 | 基于 Axios 的 HTTP 请求库 |
-| [@code-snippet/utils](./packages/utils) | 0.1.0 | 通用工具函数库 |
+| Package | 描述 |
+|---------|------|
+| [@junxuan/requests](./packages/requests) | 基于 Axios 的 HTTP 请求库 |
+| [@junxuan/utils](./packages/utils) | 通用工具函数库 |
 
 ## 🛠️ 技术栈
 
-- **Runtime & Package Manager**: [Bun](https://bun.sh) - 超快的 JavaScript 运行时和包管理器
-- **Build Tool**: Bun Build - Bun 内置的打包工具
-- **Type System**: TypeScript 5.x
-- **HTTP Client**: Axios
+- **Runtime & Package Manager**: [Bun](https://bun.sh) 1.3+
+- **Build Tool**: [tsup](https://tsup.egoist.dev/) (ESM 格式)
+- **Formatter & Linter**: [Biome](https://biomejs.dev/)
+- **Type System**: TypeScript 5.7+
+- **Versioning**: [Changesets](https://github.com/changesets/changesets)
 
 ## 🚀 快速开始
+
+### 环境要求
+
+- Bun 1.3+
+- Node.js 18+ (npm 发布需要)
 
 ### 安装依赖
 
@@ -55,6 +61,22 @@ bun test
 bun test --watch
 ```
 
+### 代码规范
+
+```bash
+# 格式化代码
+bun run format
+
+# 代码检查
+bun run lint
+
+# 格式化 + 检查
+bun run check
+
+# CI 检查（不自动修复）
+bun run ci
+```
+
 ### 类型检查
 
 ```bash
@@ -64,8 +86,59 @@ bun run typecheck
 ### 清理
 
 ```bash
-# 清理所有构建产物
 bun run clean
+```
+
+## 📤 发布流程
+
+### 使用交互式工具（推荐）
+
+```bash
+bun run pub
+```
+
+会显示菜单让你选择操作：
+- 创建变更记录
+- 更新版本号
+- 发布到 npm
+- 一键发布
+
+### 手动发布步骤
+
+#### 1. 创建变更记录
+
+每次完成功能开发或 bug 修复后：
+
+```bash
+bun run changeset
+```
+
+按提示选择：
+- 哪些包有变更
+- 版本类型：`patch`（修复）、`minor`（新功能）、`major`（破坏性变更）
+- 变更描述
+
+然后提交生成的 changeset 文件。
+
+#### 2. 更新版本号
+
+```bash
+bun run version
+git add .
+git commit -m "chore: version packages"
+```
+
+#### 3. 发布到 npm
+
+```bash
+# 确保已登录 npm
+npm login
+
+# 发布
+bun run release
+
+# 推送代码和 tag
+git push --follow-tags
 ```
 
 ## 📂 项目结构
@@ -75,114 +148,48 @@ code-snippet/
 ├── packages/                  # Monorepo 包目录
 │   ├── requests/             # HTTP 请求库
 │   │   ├── src/
-│   │   │   ├── index.ts
-│   │   │   └── types.ts
+│   │   ├── tests/
 │   │   ├── package.json
-│   │   ├── tsconfig.json
 │   │   └── README.md
-│   │
 │   └── utils/                # 工具库
 │       ├── src/
-│       │   └── index.ts
 │       ├── package.json
-│       ├── tsconfig.json
 │       └── README.md
-│
+├── scripts/
+│   └── release.sh            # 发布脚本
+├── .changeset/               # Changesets 配置
 ├── .github/                  # GitHub 配置
+├── biome.json               # Biome 配置
 ├── bunfig.toml              # Bun 配置
 ├── tsconfig.base.json       # 基础 TS 配置
 ├── tsconfig.json            # 根 TS 配置
-├── package.json             # 根 package.json
-├── bun.lockb                # Bun lockfile
-└── README.md                # 项目文档
+└── package.json             # 根 package.json
 ```
 
-## 📚 使用指南
-
-### 在项目中使用
-
-```typescript
-// 使用 requests 包
-import { Request } from '@code-snippet/requests';
-
-const api = new Request({
-  baseURL: 'https://api.example.com',
-  returnData: true,
-});
-
-const data = await api.get('/users');
-
-// 使用 utils 包
-import { logger, generateUUID } from '@code-snippet/utils';
-
-logger.info('Hello, world!');
-const id = generateUUID();
-```
-
-### 添加新包
+## ➕ 添加新包
 
 1. 在 `packages/` 目录下创建新文件夹
-2. 创建 `package.json` 和 `tsconfig.json`
-3. 在根 `package.json` 中添加构建脚本
-4. 运行 `bun install` 更新依赖
+2. 添加 `package.json`（name 使用 `@junxuan/xxx` 格式）
+3. 添加 `tsconfig.json`（继承 `../../tsconfig.base.json`）
+4. 添加 `tsup.config.ts`（参考现有包配置）
+5. 在根目录 `tsconfig.json` 添加 references
+6. 运行 `bun install`
 
-## 🔧 Bun 特性
+## 📝 开发规范
 
-### 为什么选择 All in Bun？
+### 命名规范
 
-- ⚡ **超快速度**: Bun 比 Node.js 快 3-4 倍
-- 📦 **内置包管理**: 无需 npm/pnpm/yarn
-- 🔨 **内置构建工具**: 无需 webpack/rollup/tsup
-- 🧪 **内置测试**: 无需 jest/vitest
-- 📦 **原生 TypeScript**: 无需额外配置
-- 🎯 **零依赖**: 一个工具完成所有任务
+- **文件名**: kebab-case（如 `error-handler.ts`）
+- **类名/接口名**: PascalCase（如 `BusinessError`）
+- **函数/变量名**: camelCase（如 `createRequest`）
 
-### Bun 命令速查
+### 代码风格
 
-```bash
-# 安装依赖
-bun install
-
-# 运行脚本
-bun run dev
-bun run build
-
-# 直接运行文件
-bun run index.ts
-
-# 测试
-bun test
-
-# 升级依赖
-bun update
-
-# 添加依赖
-bun add axios
-bun add -d typescript
-
-# 清理缓存
-bun pm cache rm
-```
-
-## 🤝 贡献
-
-欢迎贡献代码！请确保：
-
-1. 代码符合 TypeScript 规范
-2. 添加适当的类型注释
-3. 更新相关文档
-4. 测试通过
+- 单引号
+- 2 空格缩进
+- 行宽 100 字符
+- 使用 Biome 进行格式化
 
 ## 📄 License
 
 MIT © 2026
-
-## 🔗 相关链接
-
-- [Bun 官方文档](https://bun.sh/docs)
-- [TypeScript 官方文档](https://www.typescriptlang.org/)
-- [Axios 文档](https://axios-http.com/)
-
----
-
-**Built with ❤️ using Bun**

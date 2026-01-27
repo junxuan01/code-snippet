@@ -19,10 +19,16 @@
     "lint": "biome lint --write .",
     "lint:check": "biome lint .",
     "check": "biome check --write .",
-    "ci": "biome ci ."
+    "ci": "biome ci .",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "bun run build && changeset publish",
+    "pub": "./scripts/release.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.29.8",
     "@types/bun": "latest",
     "tsup": "^8.5.1",
     "typescript": "^5.7.3"

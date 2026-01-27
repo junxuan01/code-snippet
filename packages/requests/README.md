@@ -1,4 +1,4 @@
-# @code-snippet/requests
+# @junxuan/requests
 
 基于 Axios 封装的 TypeScript HTTP 请求库，专为现代 Web 应用设计。
 
@@ -18,13 +18,13 @@
 
 ```bash
 # 使用 bun
-bun add @code-snippet/requests axios
+bun add @junxuan/requests axios
 
 # 使用 pnpm
-pnpm add @code-snippet/requests axios
+pnpm add @junxuan/requests axios
 
 # 使用 npm
-npm install @code-snippet/requests axios
+npm install @junxuan/requests axios
 ```
 
 ## 🚀 快速开始
@@ -34,7 +34,7 @@ npm install @code-snippet/requests axios
 适用于 `{ code: 0, data: T, message: string }` 格式的后端响应：
 
 ```typescript
-import { Request } from '@code-snippet/requests';
+import { Request } from '@junxuan/requests';
 
 // 创建实例
 const api = new Request({
